@@ -19,7 +19,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       const response = await api.post('/auth/token/', { username, password });
-      localStorage.setItem('@Portal:token', response.data.token);
+
+      // O SimpleJWT do Django retorna 'access' e 'refresh'
+      const { access, refresh } = response.data;
+
+      // Salva no localStorage com o nome de chave padrão
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+
       onLoginSuccess();
     } catch {
       setErro('Usuário ou senha inválidos.');

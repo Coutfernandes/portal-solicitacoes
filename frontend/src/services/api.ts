@@ -4,10 +4,11 @@ export const api = axios.create({
   baseURL: 'http://127.0.0.1:8000/api',
 });
 
+// Intercepta TODAS as requisições enviadas ao backend
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('@Portal:token');
+  const token = localStorage.getItem('access_token');
   if (token) {
-    config.headers.Authorization = `Token ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });

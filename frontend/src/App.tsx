@@ -4,11 +4,12 @@ import { Dashboard } from './pages/Dashboard';
 
 export function App() {
   const [autenticado, setAutenticado] = useState<boolean>(() => {
-    return Boolean(localStorage.getItem('@Portal:token'));
+    return Boolean(localStorage.getItem('access_token'));
   });
 
   const handleLogout = () => {
-    localStorage.removeItem('@Portal:token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setAutenticado(false);
   };
 
