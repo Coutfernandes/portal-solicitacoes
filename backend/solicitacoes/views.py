@@ -4,9 +4,10 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from .models import Categoria, Solicitacao
 from .serializers import CategoriaSerializer, SolicitacaoSerializer
+from rest_framework.permissions import AllowAny
+from .serializers import UserRegisterSerializer
 
 
 @api_view(['GET'])
@@ -73,3 +74,12 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
             ])
             
         return response
+
+    @api_view(['POST'])
+    @permission_classes([AllowAny]) 
+    def register_user(request):
+            serializer = UserRegisterSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'message': 'Usuário criado com sucesso!'}, status=201)
+            return Response(serializer.errors, status=400)
