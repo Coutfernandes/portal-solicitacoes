@@ -2,11 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Categoria(models.Model):
-    """
-    Tabela de Categorias das solicitações (TI, RH, Compras, Financeiro, Infraestrutura)
-    """
     nome = models.CharField(max_length=100, unique=True)
-    ativo = models.BooleanField(default=True)
+    descricao = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Categoria"
@@ -18,13 +16,11 @@ class Categoria(models.Model):
 
 
 class Solicitacao(models.Model):
-    """
-    Tabela Principal de Solicitações Internas
-    """
     STATUS_CHOICES = [
-        ('ABERTO', 'Aberto'),
-        ('EM_ATENDIMENTO', 'Em Atendimento'),
+        ('PENDENTE', 'Pendente'),
+        ('EM_ANDAMENTO', 'Em Andamento'),
         ('CONCLUIDO', 'Concluído'),
+        ('CANCELADO', 'Cancelado'),
     ]
 
     PRIORIDADE_CHOICES = [
@@ -36,41 +32,33 @@ class Solicitacao(models.Model):
 
     titulo = models.CharField(max_length=200)
     descricao = models.TextField()
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name='solicitacoes')
-    solicitante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitacoes')
-    data_criacao = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ABERTO')
-    prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='MEDIA')
+    categoria = models.ForeignKey(
+        Categoria, 
+        on_delete=models.PROTECT, 
+        related_name='solicitacoes'
+    )
+    solicitante = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='minhas_solicitacoes'
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='PENDENTE'
+    )
+    prioridade = models.CharField(
+        max_length=10, 
+        choices=PRIORIDADE_CHOICES, 
+        default='MEDIA'
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Solicitação"
         verbose_name_plural = "Solicitações"
-        ordering = ['-data_criacao']
-
-    @property
-    def codigo(self):
-        """
-        Gera o código sequencial formatado no padrão SOL-0001
-        """
-        return f"SOL-{self.id:04d}"
+        ordering = ['-criado_em']
 
     def __str__(self):
-        return f"{self.codigo} - {self.titulo}"
-
-
-class HistoricoSolicitacao(models.Model):
-    """
-    Tabela de Auditoria e Linha do Tempo das alterações feitas em cada solicitação
-    """
-    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name='historico')
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    acao_realizada = models.TextField()
-    data_alteracao = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Histórico de Solicitação"
-        verbose_name_plural = "Históricos de Solicitações"
-        ordering = ['-data_alteracao']
-
-    def __str__(self):
-        return f"Histórico {self.solicitacao.codigo} - {self.data_alteracao.strftime('%d/%m/%Y %H:%M')}"
+        return f"{self.titulo} - {self.get_status_display()}"
