@@ -1,10 +1,10 @@
-export type StatusSolicitacao = 'ABERTO' | 'EM_ATENDIMENTO' | 'CONCLUIDO';
+export type StatusSolicitacao = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO';
 export type PrioridadeSolicitacao = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 
 export interface Categoria {
   id: number;
   nome: string;
-  ativo: boolean;
+  ativo?: boolean;
 }
 
 export interface HistoricoSolicitacao {
@@ -18,22 +18,23 @@ export interface HistoricoSolicitacao {
 
 export interface Solicitacao {
   id: number;
-  codigo: string;
+  codigo?: string;
   titulo: string;
   descricao: string;
   categoria: number;
   categoria_nome: string;
   solicitante: number;
   solicitante_nome: string;
-  data_criacao: string;
+  criado_em: string;
+  atualizado_em: string;
   status: StatusSolicitacao;
   prioridade: PrioridadeSolicitacao;
-  historico: HistoricoSolicitacao[];
+  historico?: HistoricoSolicitacao[];
 }
 
 export interface KPIStats {
   total: number;
-  abertas: number;
-  em_atendimento: number;
-  concluidas: number;
+  pendentes: number;
+  em_andamento: number;
+  concluidos: number;
 }

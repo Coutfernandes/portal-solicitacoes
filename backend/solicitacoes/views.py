@@ -1,13 +1,13 @@
 import csv
 from django.http import HttpResponse
-from rest_framework import viewsets, permissions
+from django.db.models import Q
+from rest_framework import serializers, viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+
 from .models import Categoria, Solicitacao
-from .serializers import CategoriaSerializer, SolicitacaoSerializer
-from rest_framework.permissions import AllowAny
-from .serializers import UserRegisterSerializer
+from .serializers import CategoriaSerializer, SolicitacaoSerializer, UserRegisterSerializer
 
 
 @api_view(['GET'])
@@ -36,11 +36,43 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Solicitacao.objects.all()
-        return Solicitacao.objects.filter(solicitante=user)
+            queryset = Solicitacao.objects.all()
+        else:
+            queryset = Solicitacao.objects.filter(solicitante=user)
+
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            codigo = search.removeprefix('#').strip()
+            if codigo.isdecimal():
+                queryset = queryset.filter(Q(titulo__icontains=search) | Q(pk=int(codigo)))
+            else:
+                queryset = queryset.filter(titulo__icontains=search)
+
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        categoria = self.request.query_params.get('categoria')
+        if categoria:
+            if not categoria.isdecimal():
+                return queryset.none()
+            queryset = queryset.filter(categoria_id=int(categoria))
+
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(solicitante=self.request.user)
+
+    @action(detail=True, methods=['patch'], url_path='alterar_status')
+    def alterar_status(self, request, pk=None):
+        solicitacao = self.get_object()
+        novo_status = request.data.get('status')
+        if novo_status not in dict(Solicitacao.STATUS_CHOICES):
+            raise serializers.ValidationError({'status': 'Status inválido.'})
+
+        solicitacao.status = novo_status
+        solicitacao.save(update_fields=['status', 'atualizado_em'])
+        return Response(self.get_serializer(solicitacao).data)
 
     @action(detail=False, methods=['get'])
     def kpis(self, request):
@@ -75,11 +107,13 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
             
         return response
 
-    @api_view(['POST'])
-    @permission_classes([AllowAny]) 
-    def register_user(request):
-            serializer = UserRegisterSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'message': 'Usuário criado com sucesso!'}, status=201)
-            return Response(serializer.errors, status=400)
+
+# View desacoplada do ViewSet para registro de usuário
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    serializer = UserRegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'message': 'Usuário criado com sucesso!'}, status=201)
+    return Response(serializer.errors, status=400)
