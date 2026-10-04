@@ -17,7 +17,7 @@ export interface AuthenticatedUser {
 }
 
 export const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
 });
 
 // Interceptor de Requisição: Injeta o Token JWT em todas as chamadas
