@@ -6,12 +6,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Configurações de segurança
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-chave-dev-portal-2026')
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'False' if os.environ.get('VERCEL') else 'True').lower() == 'true'
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get('ALLOWED_HOSTS', '*').split(',')
     if host.strip()
 ]
+for vercel_host in (
+    os.environ.get('VERCEL_URL', ''),
+    os.environ.get('VERCEL_PROJECT_PRODUCTION_URL', ''),
+):
+    if vercel_host and vercel_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(vercel_host)
 
 # Aplicações instaladas
 INSTALLED_APPS = [
@@ -66,8 +72,20 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # --- BANCO DE DADOS (SQLite Local / PostgreSQL) ---
 DB_ENGINE = os.environ.get('DB_ENGINE', 'sqlite')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DB_ENGINE == 'postgresql':
+if DATABASE_URL:
+    import dj_database_url
+
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=0,
+            ssl_require=True,
+        )
+    }
+    DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+elif DB_ENGINE == 'postgresql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -112,5 +130,6 @@ TIME_ZONE = 'America/Manaus'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -66,7 +66,7 @@ python manage.py runserver
 
 O Django cria o banco SQLite em `backend/db.sqlite3` por padrão. As migrações criam e atualizam as tabelas; não é necessário executar scripts SQL manualmente.
 
-Depois de criar o superusuário, cadastre as categorias no painel administrativo em `http://localhost:8000/admin/`. As categorias sugeridas no desafio são TI, RH, Compras, Financeiro e Infraestrutura.
+As migrações criam automaticamente as categorias iniciais TI, RH, Compras, Financeiro e Infraestrutura. Depois de criar o superusuário, use o painel administrativo em `http://localhost:8000/admin/` para gerenciá-las ou cadastrar outras.
 
 O endpoint de cadastro também está disponível na tela de entrada. Não há credenciais de demonstração pré-configuradas: use a conta que criou com `createsuperuser` ou cadastre outra pela interface.
 
@@ -147,29 +147,56 @@ npm run lint
 npm run build
 ```
 
-## Deploy
+## Deploy na Vercel com PostgreSQL no Neon
 
-### Frontend na Vercel
+O frontend e o Django são publicados como dois projetos Vercel, ambos ligados ao mesmo repositório. A API usa PostgreSQL gerenciado no Neon; não use SQLite na Vercel, pois o filesystem das funções não é persistente. O projeto Django é detectado automaticamente pela Vercel usando `backend/manage.py` e `backend/config/wsgi.py`.
 
-1. Importe o repositório na Vercel.
-2. Configure `frontend` como **Root Directory**.
-3. Use `npm run build` como comando de build e `dist` como diretório de saída. A Vercel normalmente detecta o Vite automaticamente.
-4. Defina a variável de ambiente `VITE_API_URL` com a URL pública da API Django, incluindo `/api` (por exemplo, `https://api.seudominio.com/api`).
-5. Faça o deploy e confirme que a URL configurada está acessível pelo navegador.
+### 1. Criar o banco no Neon
 
-### API Django e SQLite persistente
+1. Crie um projeto PostgreSQL no [Neon](https://neon.tech/).
+2. Copie a **pooled connection string** do banco. Ela é a `DATABASE_URL`; mantenha-a privada e não a coloque no Git.
+3. Use essa URL na configuração do projeto da API na Vercel e, temporariamente, no terminal local para aplicar as migrações iniciais.
 
-A API deve ser publicada em um serviço que execute aplicações Python/Django e ofereça armazenamento persistente. Configure nesse serviço:
+### 2. Publicar a API Django na Vercel
 
-- instalação das dependências de `backend/requirements.txt`;
-- diretório de trabalho `backend`;
-- `python manage.py migrate` como comando de preparação/release do banco;
-- `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT` como comando de inicialização (ajuste a variável de porta conforme o serviço);
-- `DEBUG=False`, `SECRET_KEY` segura, `ALLOWED_HOSTS` com o domínio da API e `CORS_ALLOWED_ORIGINS` com o domínio Vercel;
-- `SQLITE_PATH` apontando para um arquivo em um volume/disco persistente gravável;
-- uma cópia de segurança periódica do arquivo SQLite.
+1. Na Vercel, crie um novo projeto importando o mesmo repositório.
+2. Defina **Root Directory** como `backend`. Mantenha a detecção automática do framework/comandos; não configure Gunicorn, pois a Vercel executa Django como uma função Python.
+3. Adicione estas variáveis em **Settings → Environment Variables** para Production:
 
-O provedor específico da API ainda precisa ser escolhido. A Vercel será usada para o frontend; não use o filesystem efêmero de uma função Vercel como local do SQLite, pois os dados podem desaparecer ou não estar disponíveis para outras instâncias. Para uso com vários processos ou maior concorrência, considere um banco gerenciado apropriado em uma etapa futura.
+   | Variável | Valor |
+   | --- | --- |
+   | `DATABASE_URL` | URL de conexão pooled copiada do Neon |
+   | `SECRET_KEY` | Uma nova chave secreta forte, diferente da chave local |
+   | `DEBUG` | `False` |
+   | `ALLOWED_HOSTS` | Domínio público da API na Vercel, sem `https://` |
+   | `CORS_ALLOWED_ORIGINS` | `https://portal-solicitacoes-smoky.vercel.app` |
+
+4. Faça o deploy e anote o domínio da API, por exemplo `https://portal-solicitacoes-api.vercel.app`.
+
+### 3. Criar tabelas e categorias no Neon
+
+As migrações criam as tabelas e as categorias iniciais. Execute-as uma vez do computador local, a partir da pasta `backend`, usando a mesma `DATABASE_URL` privada que cadastrou na Vercel:
+
+```powershell
+$secureUrl = Read-Host "Cole a DATABASE_URL do Neon" -AsSecureString
+$env:DATABASE_URL = [System.Net.NetworkCredential]::new("", $secureUrl).Password
+python manage.py migrate
+Remove-Item Env:DATABASE_URL
+```
+
+Não cole a URL do banco em conversas, capturas de tela ou arquivos versionados. Para desenvolvimento local sem `DATABASE_URL`, o projeto continua usando SQLite.
+
+### 4. Apontar o frontend para a nova API
+
+No projeto Vercel do frontend, abra **Settings → Environment Variables** e defina `VITE_API_URL` para o domínio da API seguido de `/api`, por exemplo:
+
+```text
+https://portal-solicitacoes-api.vercel.app/api
+```
+
+Faça um novo deploy do frontend para aplicar a variável. Depois, confira no navegador o login e as chamadas `/api/categorias/` e `/api/solicitacoes/`.
+
+Mantenha o serviço antigo do Render ativo até confirmar que o login, as categorias e as solicitações necessárias estão disponíveis no novo banco. A migração cria o schema e categorias padrão, mas não copia contas ou solicitações do SQLite antigo. A Vercel também não deve executar migrações durante cada invocação da API; aplique-as pelo terminal local apenas quando necessário.
 
 ## Modelo de dados resumido
 
@@ -179,6 +206,6 @@ O provedor específico da API ainda precisa ser escolhido. A Vercel será usada 
 
 ## Observações
 
-- O banco SQLite local não contém necessariamente os dados de produção. Migrações e usuários/categorias devem ser preparados no ambiente publicado.
+- O banco SQLite local não contém necessariamente os dados de produção. As migrações criam as categorias iniciais, mas usuários e solicitações precisam ser cadastrados em cada ambiente.
 - Não há Docker/Compose neste projeto.
 - Não existem credenciais de teste compartilhadas no repositório; crie uma conta para cada ambiente.
