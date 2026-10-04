@@ -41,6 +41,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, usuarioNome = 'U
   const [search, setSearch] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [dataInicioFiltro, setDataInicioFiltro] = useState('');
+  const [dataFimFiltro, setDataFimFiltro] = useState('');
 
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -66,6 +68,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, usuarioNome = 'U
             search: search || undefined,
             status: statusFiltro || undefined,
             categoria: categoriaFiltro || undefined,
+            data_inicio: dataInicioFiltro || undefined,
+            data_fim: dataFimFiltro || undefined,
           }
         })
       ]);
@@ -76,7 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, usuarioNome = 'U
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     }
-  }, [search, statusFiltro, categoriaFiltro]);
+  }, [search, statusFiltro, categoriaFiltro, dataInicioFiltro, dataFimFiltro]);
 
   // Solução para o erro do ESLint no useEffect
   useEffect(() => {
@@ -182,9 +186,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, usuarioNome = 'U
     setSearch('');
     setStatusFiltro('');
     setCategoriaFiltro('');
+    setDataInicioFiltro('');
+    setDataFimFiltro('');
   };
 
-  const temFiltroAtivo = search !== '' || statusFiltro !== '' || categoriaFiltro !== '';
+  const temFiltroAtivo = search !== '' || statusFiltro !== '' || categoriaFiltro !== ''
+    || dataInicioFiltro !== '' || dataFimFiltro !== '';
 
   const solicitacoesOrdenadas = useMemo(() => {
     return [...solicitacoes].sort((a, b) => {
@@ -389,6 +396,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, usuarioNome = 'U
                 <option key={cat.id} value={cat.id}>{cat.nome}</option>
               ))}
             </select>
+
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+              <span>Criada de</span>
+              <input
+                type="date"
+                aria-label="Data inicial de criação"
+                value={dataInicioFiltro}
+                max={dataFimFiltro || undefined}
+                onChange={(e) => setDataInicioFiltro(e.target.value)}
+                className="px-2 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+              <span>Até</span>
+              <input
+                type="date"
+                aria-label="Data final de criação"
+                value={dataFimFiltro}
+                min={dataInicioFiltro || undefined}
+                onChange={(e) => setDataFimFiltro(e.target.value)}
+                className="px-2 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </label>
 
             {temFiltroAtivo && (
               <button

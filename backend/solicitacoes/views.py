@@ -1,6 +1,7 @@
 import csv
 from django.http import HttpResponse
 from django.db.models import Q
+from django.utils.dateparse import parse_date
 from rest_framework import serializers, viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -57,6 +58,22 @@ class SolicitacaoViewSet(viewsets.ModelViewSet):
             if not categoria.isdecimal():
                 return queryset.none()
             queryset = queryset.filter(categoria_id=int(categoria))
+
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_fim = self.request.query_params.get('data_fim')
+        data_inicio_parseada = parse_date(data_inicio) if data_inicio else None
+        data_fim_parseada = parse_date(data_fim) if data_fim else None
+
+        if data_inicio and data_inicio_parseada is None:
+            raise serializers.ValidationError({'data_inicio': 'Use uma data válida no formato AAAA-MM-DD.'})
+        if data_fim and data_fim_parseada is None:
+            raise serializers.ValidationError({'data_fim': 'Use uma data válida no formato AAAA-MM-DD.'})
+        if data_inicio_parseada and data_fim_parseada and data_inicio_parseada > data_fim_parseada:
+            raise serializers.ValidationError({'data_fim': 'A data final deve ser igual ou posterior à data inicial.'})
+        if data_inicio_parseada:
+            queryset = queryset.filter(criado_em__date__gte=data_inicio_parseada)
+        if data_fim_parseada:
+            queryset = queryset.filter(criado_em__date__lte=data_fim_parseada)
 
         return queryset
 

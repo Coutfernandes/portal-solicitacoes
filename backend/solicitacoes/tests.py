@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -48,6 +51,35 @@ class SolicitacaoDashboardTests(APITestCase):
             [item['id'] for item in response.data['results']],
             [self.solicitacao_aberta.id],
         )
+
+    def test_list_filters_by_inclusive_creation_date_range(self):
+        tz = timezone.get_current_timezone()
+        Solicitacao.objects.filter(pk=self.solicitacao_aberta.pk).update(
+            criado_em=timezone.make_aware(datetime(2026, 1, 10, 23, 30), tz)
+        )
+        outra_solicitacao = Solicitacao.objects.exclude(pk=self.solicitacao_aberta.pk).get()
+        Solicitacao.objects.filter(pk=outra_solicitacao.pk).update(
+            criado_em=timezone.make_aware(datetime(2026, 1, 11, 0, 30), tz)
+        )
+
+        response = self.client.get('/api/solicitacoes/', {
+            'data_inicio': '2026-01-10',
+            'data_fim': '2026-01-10',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item['id'] for item in response.data['results']],
+            [self.solicitacao_aberta.id],
+        )
+
+    def test_list_rejects_invalid_creation_date_range(self):
+        response = self.client.get('/api/solicitacoes/', {
+            'data_inicio': '2026-02-01',
+            'data_fim': '2026-01-01',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_kpis_use_backend_statuses_and_names(self):
         response = self.client.get('/api/solicitacoes/kpis/')
