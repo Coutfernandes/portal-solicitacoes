@@ -1,57 +1,63 @@
 # Portal de Solicitações Internas
 
-Aplicação web full stack para que colaboradores registrem solicitações internas, acompanhem o andamento e consultem indicadores e resultados filtrados.
+Aplicação web para registo e acompanhamento de solicitações internas, com autenticação, categorias e dashboard de indicadores.
+
+## Aplicação publicada
+
+- **Frontend:** [portal-solicitacoes-smoky.vercel.app](https://portal-solicitacoes-smoky.vercel.app/)
+- **API Django:** [portal-solicitacoes-88.vercel.app](https://portal-solicitacoes-88.vercel.app/)
+- **Banco de dados:** PostgreSQL gerenciado no Neon
+
+A API não possui página inicial em `/`. Para verificar o serviço, acesse uma rota da API, por exemplo `/api/categorias/`. As rotas de categorias e solicitações exigem autenticação.
 
 ## Funcionalidades
 
-- Autenticação com usuário e senha, sessão por JWT e logout.
-- Cadastro, edição e exclusão de solicitações abertas.
-- Categorias, solicitante, data de criação e status associados às solicitações.
-- Alteração de status entre aberto, em atendimento, concluído e cancelado.
-- Dashboard com contagens por status.
-- Pesquisa por título ou código/ID, status, categoria e período de criação.
-- Ordenação da listagem e exportação dos resultados filtrados em CSV.
-- Interface responsiva.
+- Cadastro e autenticação de utilizadores com JWT.
+- Criação, edição e exclusão de solicitações.
+- Categorias, prioridade, status e datas associados às solicitações.
+- Dashboard com indicadores por status.
+- Filtros por título/código, status, categoria e período de criação.
+- Ordenação de resultados e exportação CSV.
+- Interface responsiva em português.
 
-## Tecnologias e decisões
+## Tecnologias
 
-- **Python e Django REST Framework:** escolhi Python/Django porque já havia trabalhado com essas tecnologias. O Django fornece recursos maduros para autenticação, validação, administração e persistência; o DRF organiza a exposição dos dados por API.
-- **React e TypeScript com Vite:** escolhi React por já ter experiência com a tecnologia e por facilitar a criação de uma interface dividida em componentes. TypeScript ajuda a detectar inconsistências nos dados consumidos da API; Vite oferece um fluxo de desenvolvimento e build direto.
-- **Arquitetura desacoplada:** mantive o frontend separado do backend porque já havia trabalhado com esse modelo. A API REST faz a comunicação entre as partes, que podem ser executadas e implantadas independentemente.
-- **SQLite:** atende ao escopo do mini-projeto e simplifica a execução local, sem exigir um servidor de banco separado. No deploy, o arquivo SQLite precisa ficar em armazenamento persistente.
-- **Vercel:** será usada para publicar o frontend. A API Django ficará em um serviço Python com disco persistente, pois o filesystem de funções serverless não é apropriado para guardar o banco SQLite.
-- **Sem Docker:** a instalação e a execução são feitas diretamente com Python e Node.js, sem contêineres.
+- **Backend:** Python, Django e Django REST Framework.
+- **Frontend:** React, TypeScript, Vite e Tailwind CSS.
+- **Banco local:** SQLite.
+- **Banco publicado:** PostgreSQL no Neon.
+- **Hospedagem:** Vercel para frontend e API; Neon para o banco de dados.
+- **Arquitetura:** frontend e backend desacoplados, comunicando-se por API REST.
+- **Docker:** não é necessário.
 
-## Estrutura do repositório
+## Estrutura
 
 ```text
 backend/
-  config/                 Configuração e rotas do Django
-  solicitacoes/           Modelos, API, serializers e migrações
+  config/                 Configurações, URLs e entrada WSGI do Django
+  solicitacoes/           Modelos, API, serializers, testes e migrações
   requirements.txt        Dependências Python
   manage.py
 frontend/
   src/
     components/           Componentes reutilizáveis
     pages/                Login e dashboard
-    services/              Cliente HTTP da API
-    types/                 Tipos TypeScript
+    services/             Cliente HTTP da API
+    types/                Tipos TypeScript
   package.json
 ```
 
-## Pré-requisitos
+## Requisitos
 
 - Python 3.12 ou superior.
 - Node.js 20.19 ou superior (ou 22.12 ou superior) e npm.
-- Git, para clonar o repositório.
+- Git.
 
-## Execução local no Windows
+## Desenvolvimento local no Windows
 
-Abra dois terminais na raiz do projeto: um para o backend e outro para o frontend.
+### Backend
 
-### 1. Preparar e iniciar o backend
-
-No primeiro terminal, execute:
+No PowerShell, a partir da raiz do repositório:
 
 ```powershell
 cd backend
@@ -64,15 +70,13 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-O Django cria o banco SQLite em `backend/db.sqlite3` por padrão. As migrações criam e atualizam as tabelas; não é necessário executar scripts SQL manualmente.
+Por padrão, o Django usa `backend/db.sqlite3`. As migrações criam as tabelas e as categorias iniciais: TI, RH, Compras, Financeiro e Infraestrutura. O painel administrativo local fica em `http://localhost:8000/admin/`.
 
-As migrações criam automaticamente as categorias iniciais TI, RH, Compras, Financeiro e Infraestrutura. Depois de criar o superusuário, use o painel administrativo em `http://localhost:8000/admin/` para gerenciá-las ou cadastrar outras.
+Não há contas de demonstração pré-configuradas. Crie uma conta pela tela de registo ou use o superutilizador criado acima.
 
-O endpoint de cadastro também está disponível na tela de entrada. Não há credenciais de demonstração pré-configuradas: use a conta que criou com `createsuperuser` ou cadastre outra pela interface.
+### Frontend
 
-### 2. Instalar e iniciar o frontend
-
-No segundo terminal, na raiz do projeto:
+Abra outro terminal na raiz do repositório:
 
 ```powershell
 cd frontend
@@ -80,63 +84,65 @@ npm ci
 npm run dev
 ```
 
-Abra o endereço indicado pelo Vite, normalmente `http://localhost:5173`. Por padrão, o frontend chama a API local em `http://localhost:8000/api`.
+O Vite normalmente inicia em `http://localhost:5173`. Sem configuração adicional, o frontend usa a API local `http://localhost:8000/api`.
 
-### URL da API em desenvolvimento
-
-Para usar outro endereço de API, crie `frontend/.env.local` com:
+Para apontar o frontend local para outra API, crie `frontend/.env.local`:
 
 ```dotenv
 VITE_API_URL=http://localhost:8000/api
 ```
 
-O valor deve ser a URL base da API e incluir o sufixo `/api`. Reinicie o servidor Vite depois de alterar variáveis `VITE_*`.
+Reinicie o Vite após alterar variáveis `VITE_*`.
 
-## Configuração do backend
+## Variáveis de ambiente
 
-O backend lê estas variáveis de ambiente:
+### Backend
 
-| Variável | Uso | Padrão local |
-| --- | --- | --- |
-| `SECRET_KEY` | Chave secreta do Django. Defina uma chave forte e privada fora do ambiente local. | Chave apenas para desenvolvimento |
-| `DEBUG` | Ativa/desativa o modo de depuração. | `True` |
-| `ALLOWED_HOSTS` | Hosts Django permitidos, separados por vírgula. | `*` |
-| `CORS_ALLOWED_ORIGINS` | Origens completas autorizadas para chamar a API, separadas por vírgula. | Vazio |
-| `SQLITE_PATH` | Caminho completo do arquivo SQLite. | `backend/db.sqlite3` |
+| Variável | Finalidade |
+| --- | --- |
+| `SECRET_KEY` | Chave secreta do Django; use um valor privado e forte em produção. |
+| `DEBUG` | Ativa ou desativa o modo de depuração. Em produção, use `False`. |
+| `ALLOWED_HOSTS` | Domínios autorizados pelo Django, separados por vírgula. |
+| `CORS_ALLOWED_ORIGINS` | Origens do frontend autorizadas, URLs completas separadas por vírgula, sem barra final. |
+| `DATABASE_URL` | URL de conexão PostgreSQL usada na Vercel/Neon. |
+| `SQLITE_PATH` | Caminho opcional do arquivo SQLite local. |
 
-Para gerar uma chave secreta:
+Quando `DATABASE_URL` está definida, o backend usa PostgreSQL com SSL. Sem ela, usa SQLite local.
 
-```powershell
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
+### Frontend
 
-Em produção, configure `DEBUG=False`, defina `SECRET_KEY`, informe o domínio da API em `ALLOWED_HOSTS` e o endereço HTTPS do frontend em `CORS_ALLOWED_ORIGINS`. Não publique chaves secretas nem as inclua no Git.
+| Variável | Finalidade |
+| --- | --- |
+| `VITE_API_URL` | URL base da API, incluindo `/api`, por exemplo `https://portal-solicitacoes-88.vercel.app/api`. |
 
-## API principal
+Variáveis `VITE_*` são incorporadas no código disponibilizado ao navegador. Não coloque senhas, tokens ou connection strings nelas.
 
-As rotas da aplicação usam o prefixo `/api/`. As solicitações e categorias exigem autenticação.
+## API
+
+As rotas usam o prefixo `/api/`.
 
 | Método | Rota | Finalidade |
 | --- | --- | --- |
-| `POST` | `/api/token/` | Obter tokens JWT usando usuário e senha |
-| `POST` | `/api/token/refresh/` | Renovar um token JWT |
-| `GET` | `/api/auth/me/` | Consultar o usuário autenticado |
-| `POST` | `/api/auth/register/` | Cadastrar usuário |
-| `GET`, `POST` | `/api/solicitacoes/` | Listar ou criar solicitações |
-| `GET`, `PUT`, `PATCH`, `DELETE` | `/api/solicitacoes/{id}/` | Consultar, alterar ou excluir uma solicitação |
-| `PATCH` | `/api/solicitacoes/{id}/alterar_status/` | Alterar o status |
-| `GET` | `/api/solicitacoes/kpis/` | Consultar indicadores |
-| `GET` | `/api/categorias/` | Listar categorias |
+| `POST` | `/api/token/` | Obter tokens JWT. |
+| `POST` | `/api/token/refresh/` | Renovar token JWT. |
+| `GET` | `/api/auth/me/` | Consultar o utilizador autenticado. |
+| `POST` | `/api/auth/register/` | Registar utilizador. |
+| `GET`, `POST` | `/api/solicitacoes/` | Listar ou criar solicitações. |
+| `GET`, `PUT`, `PATCH`, `DELETE` | `/api/solicitacoes/{id}/` | Consultar, editar ou excluir solicitação. |
+| `PATCH` | `/api/solicitacoes/{id}/alterar_status/` | Alterar status. |
+| `GET` | `/api/solicitacoes/kpis/` | Consultar indicadores. |
+| `GET` | `/api/categorias/` | Listar categorias. |
 
-Na listagem de solicitações, os parâmetros `search`, `status`, `categoria`, `data_inicio` e `data_fim` podem ser combinados. As datas usam o formato `AAAA-MM-DD`.
+As listagens de solicitações aceitam os parâmetros `search`, `status`, `categoria`, `data_inicio` e `data_fim`. As datas usam o formato `AAAA-MM-DD`. As rotas de categorias e solicitações requerem autenticação.
 
-## Testes e verificações
+## Testes e validação
 
 Backend:
 
 ```powershell
 cd backend
 python manage.py test solicitacoes
+python manage.py makemigrations --check --dry-run
 ```
 
 Frontend:
@@ -147,65 +153,56 @@ npm run lint
 npm run build
 ```
 
-## Deploy na Vercel com PostgreSQL no Neon
+## Deploy: API Django na Vercel e Neon
 
-O frontend e o Django são publicados como dois projetos Vercel, ambos ligados ao mesmo repositório. A API usa PostgreSQL gerenciado no Neon; não use SQLite na Vercel, pois o filesystem das funções não é persistente. O projeto Django é detectado automaticamente pela Vercel usando `backend/manage.py` e `backend/config/wsgi.py`.
+O frontend e a API são projetos Vercel separados, ligados ao mesmo repositório. O PostgreSQL do Neon é persistente; o filesystem das funções Vercel não deve ser usado para guardar SQLite.
 
-### 1. Criar o banco no Neon
+### Projeto do backend
 
-1. Crie um projeto PostgreSQL no [Neon](https://neon.tech/).
-2. Copie a **pooled connection string** do banco. Ela é a `DATABASE_URL`; mantenha-a privada e não a coloque no Git.
-3. Use essa URL na configuração do projeto da API na Vercel e, temporariamente, no terminal local para aplicar as migrações iniciais.
+- **Root Directory:** `backend`.
+- Mantenha a deteção automática da Vercel para Django/Python; não use Gunicorn como comando de inicialização.
+- Conecte o banco Neon ao projeto da API e disponibilize a variável `DATABASE_URL`.
+- Configure também `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS` com o domínio da API e `CORS_ALLOWED_ORIGINS` com o domínio HTTPS do frontend.
+- O domínio atual da API é `portal-solicitacoes-88.vercel.app`.
 
-### 2. Publicar a API Django na Vercel
-
-1. Na Vercel, crie um novo projeto importando o mesmo repositório.
-2. Defina **Root Directory** como `backend`. Mantenha a detecção automática do framework/comandos; não configure Gunicorn, pois a Vercel executa Django como uma função Python.
-3. Adicione estas variáveis em **Settings → Environment Variables** para Production:
-
-   | Variável | Valor |
-   | --- | --- |
-   | `DATABASE_URL` | URL de conexão pooled copiada do Neon |
-   | `SECRET_KEY` | Uma nova chave secreta forte, diferente da chave local |
-   | `DEBUG` | `False` |
-   | `ALLOWED_HOSTS` | Domínio público da API na Vercel, sem `https://` |
-   | `CORS_ALLOWED_ORIGINS` | `https://portal-solicitacoes-smoky.vercel.app` |
-
-4. Faça o deploy e anote o domínio da API, por exemplo `https://portal-solicitacoes-api.vercel.app`.
-
-### 3. Criar tabelas e categorias no Neon
-
-As migrações criam as tabelas e as categorias iniciais. Execute-as uma vez do computador local, a partir da pasta `backend`, usando a mesma `DATABASE_URL` privada que cadastrou na Vercel:
-
-```powershell
-$secureUrl = Read-Host "Cole a DATABASE_URL do Neon" -AsSecureString
-$env:DATABASE_URL = [System.Net.NetworkCredential]::new("", $secureUrl).Password
-python manage.py migrate
-Remove-Item Env:DATABASE_URL
-```
-
-Não cole a URL do banco em conversas, capturas de tela ou arquivos versionados. Para desenvolvimento local sem `DATABASE_URL`, o projeto continua usando SQLite.
-
-### 4. Apontar o frontend para a nova API
-
-No projeto Vercel do frontend, abra **Settings → Environment Variables** e defina `VITE_API_URL` para o domínio da API seguido de `/api`, por exemplo:
+Exemplo de origem CORS de produção:
 
 ```text
-https://portal-solicitacoes-api.vercel.app/api
+https://portal-solicitacoes-smoky.vercel.app
 ```
 
-Faça um novo deploy do frontend para aplicar a variável. Depois, confira no navegador o login e as chamadas `/api/categorias/` e `/api/solicitacoes/`.
+Se for testar por uma URL de preview Vercel, inclua essa origem exata em `CORS_ALLOWED_ORIGINS` e faça novo deploy do backend. Endereços de preview podem mudar; prefira o domínio estável de produção.
 
-Mantenha o serviço antigo do Render ativo até confirmar que o login, as categorias e as solicitações necessárias estão disponíveis no novo banco. A migração cria o schema e categorias padrão, mas não copia contas ou solicitações do SQLite antigo. A Vercel também não deve executar migrações durante cada invocação da API; aplique-as pelo terminal local apenas quando necessário.
+### Projeto do frontend
 
-## Modelo de dados resumido
+- **Root Directory:** `frontend`.
+- Defina `VITE_API_URL` como `https://portal-solicitacoes-88.vercel.app/api`.
+- Faça novo deploy do frontend depois de criar ou alterar `VITE_API_URL`.
 
-- **Usuário:** utiliza o modelo de autenticação do Django.
-- **Categoria:** identificador, nome, descrição opcional e data de criação.
-- **Solicitação:** identificador (usado como código na interface), título, descrição, categoria, solicitante, status, prioridade, data de criação e data de atualização.
+### Aplicar migrações no Neon
 
-## Observações
+As migrações criam as tabelas e as categorias iniciais. Execute-as a partir da pasta `backend`, no PowerShell local. O comando solicita a URL pooled do Neon sem mostrá-la durante a digitação e remove a variável do ambiente ao terminar:
 
-- O banco SQLite local não contém necessariamente os dados de produção. As migrações criam as categorias iniciais, mas usuários e solicitações precisam ser cadastrados em cada ambiente.
-- Não há Docker/Compose neste projeto.
-- Não existem credenciais de teste compartilhadas no repositório; crie uma conta para cada ambiente.
+```powershell
+$secureUrl = Read-Host "Cole a DATABASE_URL pooled do Neon" -AsSecureString
+$env:DATABASE_URL = (New-Object System.Net.NetworkCredential("", $secureUrl)).Password
+
+try {
+    .\venv\Scripts\python.exe manage.py migrate
+}
+finally {
+    Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+    $secureUrl.Dispose()
+}
+```
+
+Execute esse comando a partir do diretório `backend`, onde existe `venv`. Use a connection string pooled copiada do Neon. Nunca publique a URL, não a inclua em arquivos versionados e não a envie em mensagens ou capturas.
+
+As migrações criam o schema e as categorias padrão, mas **não copiam utilizadores ou solicitações** de outro banco. Esses dados precisam ser cadastrados novamente no Neon quando se começa com uma base vazia.
+
+## Segurança
+
+- Não versione arquivos `.env`, `.env.local`, secrets, tokens ou URLs de conexão.
+- Não compartilhe a `DATABASE_URL` nem a `SECRET_KEY`.
+- Em produção, mantenha `DEBUG=False` e restrinja `ALLOWED_HOSTS` e `CORS_ALLOWED_ORIGINS` aos domínios necessários.
+- O Neon deve ser usado como armazenamento persistente; SQLite é apenas o padrão de desenvolvimento local.
